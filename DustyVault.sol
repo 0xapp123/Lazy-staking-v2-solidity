@@ -24,7 +24,9 @@ interface IERC20 {
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
@@ -33,7 +35,10 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -78,7 +83,11 @@ interface IERC20 {
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 contract Bank {
@@ -89,12 +98,13 @@ contract Bank {
     address private admin;
 
     IERC20 public token;
-    address private dusty = 0xc6f82B6922Ad6484c69BBE5f0c52751cE7F15EF2;
+    address private dusty = 0xE556D70886B367f74fEE4EAde7B48a2fbdFf459c;
     address[] private stakers;
 
     // mapping (address => Action[])   public activities;
     // mapping (address => uint256)    public staked;
-    mapping(address => mapping(address => mapping(uint256 => Action))) public status;
+    mapping(address => mapping(address => mapping(uint256 => Action)))
+        public status;
 
     uint256 public totalStaked;
     uint256 public earlyRemoved;
@@ -140,12 +150,12 @@ contract Bank {
         require((amount * length) <= token.balanceOf(msg.sender), "NE"); // MsgSender's balance must be larger than total amount
         require(amount >= 1 * 10**18 && amount <= 1000 * 10**18, "IN"); //Amount must be in this range (1~1000)
 
-        // Define the parameters of the status 
+        // Define the parameters of the status
         uint256 reward;
         uint256 percent;
         uint256 timestamp;
 
-        // Get percent and reward from the staked amount and set the timestamp 
+        // Get percent and reward from the staked amount and set the timestamp
         (percent, reward) = calc(amount);
         timestamp = block.timestamp;
 
@@ -156,19 +166,18 @@ contract Bank {
                 stakedAmount: amount,
                 percent: percent,
                 reward: reward,
-                action: Actions.FARMING                    
+                action: Actions.FARMING
             });
         }
+
+        token.transferFrom(msg.sender, address(this), amount * length);
 
         // Add length to the totalStaked
         totalStaked += length;
     }
 
-
-        if (activities[msg.sender].length == 0) stakers.push(msg.sender);
-
     //////////////////// Calculate the percent and reward from the amount ////////////////////////
-    function calc(uint256 amount) internal views returns (uint256, uint256) {
+    function calc(uint256 amount) internal pure returns (uint256, uint256) {
         uint256 percent;
         uint256 reward;
 
@@ -214,7 +223,8 @@ contract Bank {
 
     function autoClaim(address addr, uint256 tokenId) external {
         require(
-            status[msg.sender][addr][tokeId].timestamp + 365 days < block.timestamp,
+            status[msg.sender][addr][tokenId].stakedTime + 365 days <
+                block.timestamp,
             "NT"
         ); //This NFT is automatically Claim by its Hash
 
@@ -231,26 +241,25 @@ contract Bank {
             stakedAmount: 0,
             percent: 0,
             reward: 0,
-            action: Actions.UNSTAKED                    
+            action: Actions.UNSTAKED
         });
-    
+
         totalStaked--; // Decrease the total staked NFTs
     }
 
-    function unStake(address addr, uint256 cid) external {
-        
+    function unStake(address addr, uint256 tokenId) external {
         Action memory act = status[msg.sender][addr][tokenId]; // Get the Action form the Address and Tokenid
-             
+
         //Set the mapping status[msg.sender][addr][tokenId] to its own Action which has stakedTime, stakedAmount, percent, reward, action
         status[msg.sender][addr][tokenId] = Action({
             stakedTime: 0,
             stakedAmount: 0,
             percent: 0,
             reward: 0,
-            action: Actions.UNSTAKED                    
+            action: Actions.UNSTAKED
         });
-    
-        bonusPool += act.amount; // Increase the amount of bonus/charity pool
+
+        bonusPool += act.stakedAmount; // Increase the amount of bonus/charity pool
 
         totalStaked--; // Decrease the total staked NFTs
 
