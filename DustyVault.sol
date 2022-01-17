@@ -98,11 +98,11 @@ contract Bank {
     address private admin;
 
     IERC20 public token;
-    address private dusty = 0xE556D70886B367f74fEE4EAde7B48a2fbdFf459c;
+    address private dusty = 0xBa19b31fEd7e04C7f4Bb5d555012608bD1Df0D3F;
     address[] private stakers;
 
     // mapping (address => Action[])   public activities;
-    // mapping (address => uint256)    public staked;
+    mapping(address => uint256) public staked;
     mapping(address => mapping(address => mapping(uint256 => Action)))
         public status;
 
@@ -174,6 +174,7 @@ contract Bank {
 
         // Add length to the totalStaked
         totalStaked += length;
+        staked[msg.sender] += length;
     }
 
     //////////////////// Calculate the percent and reward from the amount ////////////////////////
@@ -247,23 +248,30 @@ contract Bank {
         totalStaked--; // Decrease the total staked NFTs
     }
 
-    function unStake(address addr, uint256 tokenId) external {
-        Action memory act = status[msg.sender][addr][tokenId]; // Get the Action form the Address and Tokenid
+    function unStake(address[] calldata addr, uint256[] calldata tokenId)
+        external
+    {
+        uint256 length = tokenId.length;
 
-        //Set the mapping status[msg.sender][addr][tokenId] to its own Action which has stakedTime, stakedAmount, percent, reward, action
-        status[msg.sender][addr][tokenId] = Action({
-            stakedTime: 0,
-            stakedAmount: 0,
-            percent: 0,
-            reward: 0,
-            action: Actions.UNSTAKED
-        });
+        for (uint256 i = 0; i < length; i++) {
+            Action memory act = status[msg.sender][addr[i]][tokenId[i]]; // Get the Action form the Address and Tokenid
 
-        bonusPool += act.stakedAmount; // Increase the amount of bonus/charity pool
+            //Set the mapping status[msg.sender][addr][tokenId] to its own Action which has stakedTime, stakedAmount, percent, reward, action
+            status[msg.sender][addr[i]][tokenId[i]] = Action({
+                stakedTime: 0,
+                stakedAmount: 0,
+                percent: 0,
+                reward: 0,
+                action: Actions.UNSTAKED
+            });
 
-        totalStaked--; // Decrease the total staked NFTs
+            bonusPool += act.stakedAmount; // Increase the amount of bonus/charity pool
+        }
+        staked[msg.sender] -= length; //Decrease the staked amount of msg.sender
 
-        earlyRemoved++; // Increase the number of early removed NFTs
+        totalStaked -= length; // Decrease the total staked NFTs
+
+        earlyRemoved += length; // Increase the number of early removed NFTs
     }
 
     ////////////////////////////////////////////
