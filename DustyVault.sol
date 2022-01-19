@@ -245,6 +245,8 @@ contract Bank {
             action: Actions.UNSTAKED
         });
 
+        staked[msg.sender] -= length; //Decrease the staked amount of msg.sender
+
         totalStaked--; // Decrease the total staked NFTs
     }
 
